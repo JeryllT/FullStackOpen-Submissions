@@ -1,5 +1,6 @@
 import React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import Filter from './components/Filter.js'
 import PersonForm from './components/PersonForm.js'
 import Persons from './components/Persons.js'
@@ -13,6 +14,18 @@ const App = () => {
   const handleNewName = (event) => setNewName(event.target.value)
   const handleNewNumber = (event) => setNewNumber(event.target.value)
   const handleFilter = (event) => setConsistOf(event.target.value)
+
+  const effect = () => {
+    console.log('effect')
+    axios
+      .get('http://localhost:3001/persons')
+      .then(response => {
+        setPersons(response.data)
+      })
+  }
+
+  console.log('render', persons.length, 'people')
+  useEffect(effect, [])
 
   const handleSubmit = (event) => {
     event.preventDefault()
