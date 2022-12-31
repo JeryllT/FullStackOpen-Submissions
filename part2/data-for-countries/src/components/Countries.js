@@ -40,6 +40,7 @@ const SingleCountry = ({country, weatherKey}) => {
         <p>wind {newWeather.wind.speed} m/s</p>
       </div>
       )
+
 }
 
 const Countries = ({country, handleShow, weatherKey}) => {

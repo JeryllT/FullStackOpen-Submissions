@@ -1,9 +1,9 @@
 import React from 'react'
 import { useState, useEffect } from 'react'
-import axios from 'axios'
-import Filter from './components/Filter.js'
-import PersonForm from './components/PersonForm.js'
-import Persons from './components/Persons.js'
+import Filter from './components/Filter'
+import PersonForm from './components/PersonForm'
+import Persons from './components/Persons'
+import phbookServices from './services/phonebook'
 
 const App = () => {
   const [persons, setPersons] = useState([]) 
@@ -16,31 +16,50 @@ const App = () => {
   const handleFilter = (event) => setConsistOf(event.target.value)
 
   const effect = () => {
-    console.log('effect')
-    axios
-      .get('http://localhost:3001/persons')
-      .then(response => {
-        setPersons(response.data)
+      phbookServices.getRecords()
+      .then(records => {
+        setPersons(records)
       })
   }
 
-  console.log('render', persons.length, 'people')
   useEffect(effect, [])
 
   const handleSubmit = (event) => {
     event.preventDefault()
     const name = persons.find(person => person.name.toLowerCase() === newName.toLowerCase())
-    const number = persons.find(person => person.number === newNumber)
     
-    if (name && number) return (alert(`Both ${newName} and ${newNumber} were already added to phonebook`))
-    else if (number) return ( alert(`${newNumber} was already added to phonebook`))
-    else if (name) return ( alert(`${newName} was already added to phonebook`))
-    
-    const newPerson = {name: newName, number: newNumber}
-    
-    setPersons(persons.concat(newPerson))
-    setNewName('')
-    setNewNumber('')
+    if (name) {
+      const status = window.confirm(
+        `${newName} is already added to phonebook, replace the old number with a new one?`
+        )
+      if (status) {
+        const updatedPerson = {...name, number:newNumber}
+        phbookServices
+          .update(name.id, updatedPerson)
+          .then(
+            setPersons(persons.map(person => person.id === name.id ? updatedPerson : person))
+            )
+      }
+    } else {
+      const newPerson = {name: newName, number: newNumber}
+      phbookServices
+        .create(newPerson)
+        .then(person => {
+          setPersons(persons.concat(person))
+          setNewName('')
+          setNewNumber('')
+        } 
+        )
+    }
+  }
+
+  const handleDelete = (name, id) => {
+    let status = window.confirm(`Delete ${name}?`)
+    if (status) {
+      phbookServices
+        .remove(id)
+        .then(setPersons(persons.filter(person => person.id !== id)))
+    }
   }
 
   const personsToShow = newConsistOf ? persons.filter(person => person.name.includes(newConsistOf)) : persons
@@ -52,7 +71,7 @@ const App = () => {
       <h3>Add a New</h3>
       <PersonForm onSubmit={handleSubmit} nameStartVal={newName} handleNewName={handleNewName} numStartVal={newNumber} handleNewNumber={handleNewNumber} />
       <h2>Numbers</h2>
-      <Persons people={personsToShow} />
+      <Persons people={personsToShow} handleDelete={handleDelete} />
     </div>
   )
 }
