@@ -1,7 +1,10 @@
 const express = require('express')
 const morgan = require('morgan')
+const cors = require('cors')
 const app = express()
 app.use(express.json())
+app.use(cors())
+app.use(express.static('build'))
 
 morgan.token('number', function (req, res){
   if (req.method === 'POST') return JSON.stringify(req.body)
@@ -9,7 +12,7 @@ morgan.token('number', function (req, res){
 
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :number'))
 
-const PORT=3001
+const PORT= process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`server running on port ${PORT}`)
 })
@@ -64,8 +67,8 @@ app.get('/api/persons/:id', (request, response) => {
 })
 
 app.delete('/api/persons/:id', (request, response) => {
-  const id = request.params.id
-  entries = entries.filter(note => note.id !== id)
+  const id = Number(request.params.id)
+  entries = entries.filter(entry => entry.id !== id)
   response.status(204).end()
 })
 
@@ -87,6 +90,12 @@ app.post('/api/persons', (request, response) => {
     entries.push(newEntry)
     response.json(newEntry)
   }
+})
 
-  console.log(entries)
+app.put('/api/persons/:id', (request, response) => {
+  const body = request.body
+  const id = Number(request.params.id)
+  if (!body) return response.status(404).json({error: "Received no data"})
+  entries = entries.map(entry => entry.id === id ? body : entry)
+  response.status(204).end()
 })
