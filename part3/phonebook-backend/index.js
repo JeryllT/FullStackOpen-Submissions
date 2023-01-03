@@ -1,7 +1,9 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
 const app = express()
+const Person = require('./models/person')
 app.use(express.json())
 app.use(cors())
 app.use(express.static('build'))
@@ -17,85 +19,67 @@ app.listen(PORT, () => {
   console.log(`server running on port ${PORT}`)
 })
 
-let entries = [
-    { 
-      "id": 1,
-      "name": "Arto Hellas", 
-      "number": "040-123456"
-    },
-    { 
-      "id": 2,
-      "name": "Ada Lovelace", 
-      "number": "39-44-5323523"
-    },
-    { 
-      "id": 3,
-      "name": "Dan Abramov", 
-      "number": "12-43-234345"
-    },
-    { 
-      "id": 4,
-      "name": "Mary Poppendieck", 
-      "number": "39-23-6423122"
-    }
-]
-
 app.get('/api/persons', (request, response) => {
-    response.json(entries)
-})
-
-app.get('/info', (request, response) => {
-  
-  const numPersons = entries.length
-  const currentDT = new Date()
-  const toSend = (`
-    <p>Phonebook has info for ${numPersons} people</p>
-    <p>${currentDT}</p>
-    `
-  )
-  response.send(toSend)
+    Person
+      .find({})
+      .then(persons => response.json(persons))
 })
 
 app.get('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  const entry = entries.find(entry => entry.id === id)
-  if (!entry) {
-    response.status(404).json({error : 'ID does not exist'})
-  } else {
-    response.json(entry)
-  }
+  Person
+    .findById(request.params.id)
+    .then(person => response.json(person))
 })
 
-app.delete('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  entries = entries.filter(entry => entry.id !== id)
-  response.status(204).end()
+app.get('/api/info', (request, response) => {
+  const currentDate = new Date()
+  Person.find({}).then(result => {
+    response.send(
+      `<div>
+          <p>Phonebook has info for ${result.length}</p>
+          <p>${currentDate}</p>
+      </div>`)
+  })
+})
+
+app.delete('/api/persons/:id', (request, response, next) => {
+  
+  Person.findByIdAndRemove(request.params.id)
+    .then(result => response.status(204).end())
+    .catch(err => next(err))
 })
 
 app.post('/api/persons', (request, response) => {
   const body = request.body
-  const id = Math.floor(Math.random() * 1000)
-  const inEntries = entries.find(entry => entry.name === body.name)
 
-  if (!body.name && !body.number) response.status(404).json({error: 'both name and number is missing'})
-  else if (!body.name) response.status(404).json({error: 'name is missing'})
-  else if (!body.number) response.status(404).json({error: 'number is missing'})
-  else if (inEntries) response.status(404).json({error: 'name must be unique'})
-  else {
-    const newEntry = {
-      id: id,
-      name: body.name,
-      number: body.number
-    }
-    entries.push(newEntry)
-    response.json(newEntry)
-  }
+  if (!body.name && !body.number) return response.status(400).json({error: 'both name and number is missing'})
+
+  const newEntry = new Person({
+    name: body.name,
+    number: body.number
+  })
+
+  newEntry
+    .save()
+    .then(savedEntry => response.json(savedEntry))
 })
 
 app.put('/api/persons/:id', (request, response) => {
   const body = request.body
-  const id = Number(request.params.id)
-  if (!body) return response.status(404).json({error: "Received no data"})
-  entries = entries.map(entry => entry.id === id ? body : entry)
-  response.status(204).end()
+  
+  const entry = {
+    name: body.name,
+    number: body.number
+  }
+
+  Person.findByIdAndUpdate(request.params.id, entry, { new: true })
+    .then(result => response.json(result))
+    .catch(err => next(err))
 })
+
+const errorHandler = (error, request, response, next) => {
+  if (error.name === 'CastError') return response.status(400).JSON({error: 'malformatted id'})
+  next(error)
+} 
+
+app.use(errorHandler)

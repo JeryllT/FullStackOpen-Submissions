@@ -6,7 +6,6 @@ if (process.argv < 3) {
 }
 
 const pass = process.argv[2]
-const url = `mongodb+srv://fullstackopen:${pass}@fsc.sz66ka8.mongodb.net/phonebook?retryWrites=true&w=majority`
 
 const connection = mongoose.connect(url)
 const personSchema = new mongoose.Schema({
