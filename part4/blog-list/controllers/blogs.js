@@ -16,13 +16,13 @@ blogsRouter.post('/', async (request, response) => {
     console.log(decodedToken)
 
     if (!decodedToken.id) return response.status(400).json({error: "Invalid token"})
-
+    if (!body) return response.status(400).json({error: "Body Empty"})
     const user = await User.findById(decodedToken.id)
     const blog = new Blog({
       title: body.title,
       author: body.author,
       url: body.url,
-      likes: body.likes,
+      likes: 0,
       user: user._id
     })
     
